@@ -1,0 +1,159 @@
+/* ─── Launchly Animations ───────────────────────────────────────────────────── */
+/* All keyframes for the 10 animation signatures defined in FRONTEND_PLAN.md    */
+/* Rules: transform + opacity + clip-path only — always GPU composited          */
+
+/* 1. Staggered Reveal */
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 2. Magnetic Hover — handled in JS (MagneticHoverDirective), no keyframe */
+
+/* 3. Count-Up — handled in JS (CountUpDirective), no keyframe */
+
+/* 4. Morphing Underline — handled in JS (getBoundingClientRect), no keyframe */
+
+/* 5. Receipt Unfold */
+@keyframes receipt-unfold {
+  from {
+    clip-path: inset(0 0 100% 0);
+    opacity: 0;
+  }
+  to {
+    clip-path: inset(0 0 0% 0);
+    opacity: 1;
+  }
+}
+
+/* 6. Progress Fill — driven by CSS var(--progress), no keyframe needed */
+
+/* 7. Toast Slide + Stack */
+@keyframes toast-enter {
+  from {
+    opacity: 0;
+    transform: translateX(calc(100% + 1rem)) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes toast-exit {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(calc(100% + 1rem));
+  }
+}
+
+/* 8. Skeleton Shimmer */
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 9. Live Preview Color Wash */
+@keyframes color-wash {
+  0%   { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+/* 10. Page Transitions */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes page-leave {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+/* ─── Modal Open/Close ──────────────────────────────────────────────────────── */
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes modal-backdrop-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ─── Badge Appear ──────────────────────────────────────────────────────────── */
+@keyframes badge-pop {
+  0%   { opacity: 0; transform: scale(0.7); }
+  70%  { transform: scale(1.1); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* ─── Spinner ───────────────────────────────────────────────────────────────── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Utility Classes ───────────────────────────────────────────────────────── */
+.animate-reveal-in {
+  animation: reveal-in var(--duration-slow) var(--ease-out-expo) both;
+}
+
+.animate-toast-enter {
+  animation: toast-enter var(--duration-base) var(--ease-spring) both;
+}
+
+.animate-toast-exit {
+  animation: toast-exit var(--duration-fast) var(--ease-in-expo) both;
+}
+
+.animate-modal-enter {
+  animation: modal-enter var(--duration-slow) var(--ease-out-expo) both;
+}
+
+.animate-badge-pop {
+  animation: badge-pop var(--duration-base) var(--ease-spring) both;
+}
+
+.animate-spin {
+  animation: spin 0.8s linear infinite;
+}
+
+.animate-receipt-unfold {
+  animation: receipt-unfold var(--duration-slow) var(--ease-out-expo) both;
+}
+
+/* ─── Stagger Delays (used with .animate-reveal-in) ────────────────────────── */
+.stagger-1  { animation-delay:  60ms; }
+.stagger-2  { animation-delay: 120ms; }
+.stagger-3  { animation-delay: 180ms; }
+.stagger-4  { animation-delay: 240ms; }
+.stagger-5  { animation-delay: 300ms; }
+.stagger-6  { animation-delay: 360ms; }
