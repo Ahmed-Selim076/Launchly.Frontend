@@ -1,6 +1,6 @@
 {
   "buildCommand": "npm run build",
-  "outputDirectory": "dist/launchly-frontend/browser",
+  "outputDirectory": "dist/launchly-frontend",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
