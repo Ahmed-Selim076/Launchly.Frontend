@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  apiUrl:         'https://api.launchly.com/api',
-  platformDomain: 'launchly.com',
+  apiUrl:         'https://launchly-api076.up.railway.app/api',
+  platformDomain: 'launchly-api076.up.railway.app',
   googleClientId: 'YOUR_GOOGLE_CLIENT_ID',
 } as const;
