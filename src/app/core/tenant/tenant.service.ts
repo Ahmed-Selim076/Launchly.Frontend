@@ -17,24 +17,20 @@ export class TenantService {
   // ─── Subdomain Resolution ─────────────────────────────────────────────────
 
   /**
-   * Reads window.location.hostname and extracts the subdomain.
-   * Returns null for platform root (launchly.com or localhost:4200).
-   * Returns 'admin' for admin.launchly.com.
-   * Returns the tenant subdomain for {tenant}.launchly.com.
+   * Reads window.location.pathname and extracts the tenant subdomain from
+   * the /store/:subdomain/... path prefix.
+   * Returns null for the platform root (/, /login, /signup, /super, etc — no /store/ prefix).
+   * Returns the tenant subdomain for /store/{subdomain}/...
+   *
+   * This is path-based rather than hostname-based because the project is
+   * hosted on Vercel's free domain, which doesn't support the wildcard
+   * subdomains (storename.example.com) that hostname-based tenant
+   * resolution needs. A real custom domain with wildcard DNS would let this
+   * go back to hostname parsing instead, if that's ever set up.
    */
   getSubdomain(): string | null {
-    const hostname = window.location.hostname;
-    const platformDomain = environment.platformDomain.replace(/:\d+$/, ''); // strip port
-
-    // localhost:4200 without subdomain
-    if (hostname === 'localhost' || hostname === platformDomain) return null;
-
-    // Extract subdomain: e.g. "ahmed-store.launchly.com" → "ahmed-store"
-    const parts = hostname.split('.');
-    if (parts.length < 2) return null;
-
-    // Matches "{subdomain}.launchly.com" or "{subdomain}.localhost"
-    return parts[0];
+    const match = window.location.pathname.match(/^\/store\/([a-z0-9-]+)/);
+    return match ? match[1] : null;
   }
 
   isSuperAdminSubdomain(): boolean {
@@ -46,21 +42,17 @@ export class TenantService {
   }
 
   /**
-   * Builds a full cross-origin URL to a tenant's subdomain.
-   * ONLY ever pass this to `window.location.href` — NEVER `router.navigate()`.
-   * This is a different origin/host than the current page (platform domain
-   * vs. {subdomain}.{platformDomain}), and the Angular Router can't and
-   * shouldn't handle navigation across origins; only a real browser
-   * navigation re-runs AppComponent.ngOnInit() on the new host, which is
-   * what actually resolves the tenant and registers the admin/storefront
-   * routes (see AppComponent's subdomain-gated resetConfig).
+   * Builds a same-origin URL to a tenant's store path.
+   * Safe to pass to either `window.location.href` (full navigation, needed
+   * right after login/signup so APP_BASE_HREF and the tenant route table
+   * get re-initialized for the new /store/:subdomain prefix — see
+   * app.config.ts) or, once already inside that tenant's app instance, plain
+   * `router.navigate()`.
    *
-   * dev:  buildTenantUrl('trend-store', '/admin') → http://trend-store.localhost:4200/admin
-   * prod: buildTenantUrl('trend-store', '/admin') → https://trend-store.launchly.com/admin
+   * dev/prod alike: buildTenantUrl('trend-store', '/admin') → https://yourapp.vercel.app/store/trend-store/admin
    */
   buildTenantUrl(subdomain: string, path: string): string {
-    const protocol = environment.production ? 'https' : 'http';
-    return `${protocol}://${subdomain}.${environment.platformDomain}${path}`;
+    return `${window.location.origin}/store/${subdomain}${path}`;
   }
 
   // ─── Load Tenant ──────────────────────────────────────────────────────────
