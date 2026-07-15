@@ -2,6 +2,7 @@ import { ApplicationConfig, provideZoneChangeDetection, APP_INITIALIZER, inject 
 import { provideRouter, withComponentInputBinding, Router } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimations } from '@angular/platform-browser/animations';
+import { APP_BASE_HREF } from '@angular/common';
 
 import { routes } from './app.routes';
 import { authInterceptor }   from './core/interceptors/auth.interceptor';
@@ -79,13 +80,6 @@ function initializeRoutes() {
         path: 'login',
         component: loginMod.LoginComponent,
       },
-      // These two exist on the platform root's static route config
-      // (app.routes.ts) too, but resetConfig() here REPLACES the whole
-      // route table for tenant subdomains — without re-adding them, the
-      // "Forgot password?" link on the login page (which every tenant
-      // actually uses, at {subdomain}.launchly.com/login) 404'd, even
-      // though the component, the backend endpoint, and the link itself
-      // all existed and worked fine on the platform root domain.
       {
         path: 'forgot-password',
         component: authPagesMod.ForgotPasswordComponent,
@@ -110,17 +104,33 @@ function initializeRoutes() {
           registerTenantRoutes().finally(resolve);
         },
         error: () => {
-          // Tenant not found / suspended — still register routes so the
-          // storefront's own tenantResolver runs and can route to /not-found
-          // with a proper error state instead of leaving routes unconfigured.
           registerTenantRoutes().finally(resolve);
         },
       });
     });
 }
 
+/**
+ * Computes the app's effective base href from the current URL path, BEFORE
+ * the Router/PathLocationStrategy are constructed. For /store/pizzaa/admin,
+ * this returns '/store/pizzaa/' — Angular's PathLocationStrategy then
+ * transparently strips this prefix when matching routes and re-adds it when
+ * generating hrefs, so every route defined elsewhere (e.g. { path: 'admin' })
+ * needs no changes at all: 'admin' still resolves correctly whether the
+ * effective base is '/' (platform root) or '/store/pizzaa/' (tenant).
+ *
+ * This exists because the project is hosted on Vercel's free domain, which
+ * has no wildcard-subdomain support — /store/:subdomain/... stands in for
+ * what would otherwise be a real subdomain.
+ */
+function getBaseHref(): string {
+  const match = window.location.pathname.match(/^\/store\/([a-z0-9-]+)/);
+  return match ? `/store/${match[1]}/` : '/';
+}
+
 export const appConfig: ApplicationConfig = {
   providers: [
+    { provide: APP_BASE_HREF, useFactory: getBaseHref },
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(
       routes,
