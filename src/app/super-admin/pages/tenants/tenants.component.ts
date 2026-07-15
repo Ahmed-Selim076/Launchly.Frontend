@@ -202,7 +202,7 @@ const AVATAR_PALETTE = ['#7C6CF6', '#4FD1C5', '#F6AD55', '#FC8181', '#63B3ED', '
                             {{ tenant.name }}
                           </p>
                           <p class="text-sup-text-3 text-xs font-mono truncate">
-                            {{ tenant.subdomain }}.{{ platformDomain }}
+                            /store/{{ tenant.subdomain }}
                           </p>
                         </div>
                       </div>
