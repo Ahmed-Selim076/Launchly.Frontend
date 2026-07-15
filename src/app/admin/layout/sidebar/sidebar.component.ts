@@ -62,7 +62,7 @@ interface NavItem {
       <!-- ── Nav items ── -->
       <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
         @for (item of visibleNavItems(); track item.route) {
-          <a
+          
             [routerLink]="item.route"
             routerLinkActive="bg-ad-surface-2 text-ad-text-1"
             [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
@@ -92,8 +92,8 @@ interface NavItem {
       <!-- ── Footer: actions ── -->
       <div class="border-t border-ad-border px-3 py-4 space-y-0.5">
         <!-- View Store link -->
-        <a
-          href="/"
+        
+          [href]="storeUrl()"
           target="_blank"
           rel="noopener"
           class="flex items-center gap-3 px-3 py-2.5 rounded-md text-ad-text-2 text-sm
@@ -152,6 +152,14 @@ export class AdminSidebarComponent {
   private readonly tenantService = inject(TenantService);
 
   readonly tenant = this.tenantService.currentTenant;
+
+  /** Dynamic "View Store" link — built from the current tenant subdomain,
+   *  never hardcoded, so it always points to /store/:subdomain/ regardless
+   *  of which domain the admin panel is currently loaded from. */
+  readonly storeUrl = computed(() => {
+    const subdomain = this.tenantService.getSubdomain();
+    return subdomain ? this.tenantService.buildTenantUrl(subdomain, '/') : '/';
+  });
 
   // ─── Nav definition ───────────────────────────────────────────────────────
 
