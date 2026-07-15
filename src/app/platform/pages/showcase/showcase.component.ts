@@ -54,7 +54,7 @@ interface ShowcaseEntry {
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
               @for (entry of group.entries; track entry.subdomain) {
-                
+                <a
                   [href]="buildUrl(entry.subdomain)"
                   target="_blank"
                   rel="noopener noreferrer"
