@@ -111,7 +111,7 @@ interface ApiResponse<T> {
                     {{ tenant()!.name }}
                   </h1>
                   <p class="text-sup-text-3 text-sm mt-0.5">
-                    {{ tenant()!.subdomain }}.{{ platformDomain }}
+                    /store/{{ tenant()!.subdomain }}
                   </p>
                 </div>
               </div>
@@ -262,7 +262,7 @@ interface ApiResponse<T> {
               <div class="grid grid-cols-3 gap-4 px-6 py-4">
                 <dt class="text-sm text-sup-text-3 col-span-1">Subdomain</dt>
                 <dd class="text-sm text-sup-text-2 col-span-2 font-mono">
-                  {{ tenant()!.subdomain }}.{{ platformDomain }}
+                  /store/{{ tenant()!.subdomain }}
                 </dd>
               </div>
 
