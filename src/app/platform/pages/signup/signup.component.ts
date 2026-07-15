@@ -5,7 +5,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, ValidatorFn } from '@angular/forms';
-import { debounceTime, distinctUntilChanged, switchMap, Subject, takeUntil } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap, Subject, takeUntil, catchError, of } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { TenantService } from '../../../core/tenant/tenant.service';
@@ -435,7 +435,14 @@ export class SignupComponent implements OnDestroy {
       switchMap(subdomain => {
         this.checkingSubdomain.set(true);
         this.subdomainAvailable.set(null);
-        return this.auth.checkSubdomain(subdomain);
+        return this.auth.checkSubdomain(subdomain).pipe(
+          // A failed check (network blip, unexpected 4xx/5xx from the API)
+          // must not kill this outer subscription — switchMap unsubscribes
+          // the whole debounced pipeline when an inner observable errors,
+          // which would silently stop checking every subdomain typed
+          // afterwards for the rest of the session. Swallow it here instead.
+          catchError(() => of({ success: false, data: false, message: undefined }))
+        );
       })
     ).subscribe({
       next: res => {
