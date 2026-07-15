@@ -54,7 +54,7 @@ interface ShowcaseEntry {
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
               @for (entry of group.entries; track entry.subdomain) {
-                <a
+                
                   [href]="buildUrl(entry.subdomain)"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -71,7 +71,7 @@ interface ShowcaseEntry {
                   </div>
                   <div class="p-5">
                     <p class="font-display font-semibold text-sf-text-1 mb-1">{{ entry.name }}</p>
-                    <p class="text-xs text-sf-text-3 mb-3">{{ entry.subdomain }}.{{ platformDomain }}</p>
+                    <p class="text-xs text-sf-text-3 mb-3">/store/{{ entry.subdomain }}</p>
                     <span class="inline-flex items-center gap-1.5 text-sm font-semibold transition-transform group-hover:translate-x-1"
                           [style.color]="entry.color">
                       Open live demo
