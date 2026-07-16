@@ -69,8 +69,9 @@ function initializeRoutes() {
     import('./admin/admin.routes'),
     import('./platform/pages/login/login.component'),
     import('./platform/pages/auth/auth-pages.component'),
+    import('./storefront/pages/customer-signup/customer-signup.component'),
     import('./platform/pages/not-found/not-found.component'),
-  ]).then(([{ storefrontRoutes }, { adminRoutes }, loginMod, authPagesMod, notFoundMod]) => {
+  ]).then(([{ storefrontRoutes }, { adminRoutes }, loginMod, authPagesMod, signupMod, notFoundMod]) => {
     router.resetConfig([
       {
         path: 'admin',
@@ -79,6 +80,10 @@ function initializeRoutes() {
       {
         path: 'login',
         component: loginMod.LoginComponent,
+      },
+      {
+        path: 'signup',
+        component: signupMod.CustomerSignupComponent,
       },
       {
         path: 'forgot-password',
