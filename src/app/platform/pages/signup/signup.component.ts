@@ -540,9 +540,10 @@ export class SignupComponent implements OnDestroy {
             this.selectedTemplateId.set(items[0].templateId);
           }
         },
-        error: () => {
+        error: (err: unknown) => {
           this.loadingTemplates.set(false);
-          this.toast.error('Failed to load templates. Please try again.');
+          const message = (err as { error?: { message?: string } })?.error?.message;
+          this.toast.error(message ?? 'Failed to load templates. Please try again.');
         },
       });
   }
