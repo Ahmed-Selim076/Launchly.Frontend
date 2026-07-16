@@ -28,7 +28,12 @@ declare const google: any;
       <!-- Top bar -->
       <div class="h-16 border-b border-sf-border flex items-center px-6 justify-between">
         <a routerLink="/" class="font-display font-bold text-xl text-sf-text-1">Launchly</a>
-        @if (!isCustomerContext) {
+        @if (isCustomerContext) {
+          <span class="text-sm text-sf-text-3">
+            No account?
+            <a routerLink="/signup" class="text-accent hover:underline ml-1">Create one</a>
+          </span>
+        } @else {
           <span class="text-sm text-sf-text-3">
             No account?
             <a routerLink="/signup" class="text-accent hover:underline ml-1">Sign up free</a>
@@ -106,7 +111,8 @@ declare const google: any;
 
           @if (isCustomerContext) {
             <p class="text-xs text-sf-text-3 text-center mt-6">
-              New here? You'll get an account automatically the first time you check out.
+              New here? <a routerLink="/signup" class="text-accent hover:underline">Create an account</a>,
+              or just check out as a guest — either way works.
             </p>
           }
         </div>
