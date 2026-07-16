@@ -28,17 +28,25 @@ declare const google: any;
       <!-- Top bar -->
       <div class="h-16 border-b border-sf-border flex items-center px-6 justify-between">
         <a routerLink="/" class="font-display font-bold text-xl text-sf-text-1">Launchly</a>
-        <span class="text-sm text-sf-text-3">
-          No account?
-          <a routerLink="/signup" class="text-accent hover:underline ml-1">Sign up free</a>
-        </span>
+        @if (!isCustomerContext) {
+          <span class="text-sm text-sf-text-3">
+            No account?
+            <a routerLink="/signup" class="text-accent hover:underline ml-1">Sign up free</a>
+          </span>
+        }
       </div>
 
       <!-- Form area -->
       <div class="flex-1 flex items-center justify-center py-12 px-6">
         <div class="w-full max-w-sm">
           <h1 class="font-display text-3xl font-bold text-sf-text-1 mb-2">Welcome back</h1>
-          <p class="text-sf-text-3 mb-8">Sign in to your Launchly account.</p>
+          <p class="text-sf-text-3 mb-8">
+            @if (isCustomerContext) {
+              Sign in to view your account and order history.
+            } @else {
+              Sign in to your Launchly account.
+            }
+          </p>
 
           @if (googleEnabled) {
             <div class="mb-5">
@@ -95,6 +103,12 @@ declare const google: any;
               Sign in
             </app-button>
           </form>
+
+          @if (isCustomerContext) {
+            <p class="text-xs text-sf-text-3 text-center mt-6">
+              New here? You'll get an account automatically the first time you check out.
+            </p>
+          }
         </div>
       </div>
     </div>
@@ -112,6 +126,19 @@ export class LoginComponent implements AfterViewInit {
   readonly loading       = signal(false);
   readonly serverError   = signal('');
   readonly googleEnabled = this.auth.googleEnabled;
+
+  // This same LoginComponent is registered as the /login route both at the
+  // platform root (tenant-admin sign-in) AND on every tenant subdomain
+  // (customer sign-in — linked from the storefront's account page and
+  // checkout). Those are two different backends: the tenant-admin endpoint
+  // (auth.login()) explicitly rejects Customer accounts server-side, so
+  // without this branch a customer's correct password would always come
+  // back "Invalid email or password." Its "Sign up free" link also pointed
+  // at /signup, the multi-step store-creation wizard — a route that's only
+  // ever registered at the platform root, hence the 404 when a customer
+  // hit it from inside a store.
+  readonly isCustomerContext =
+    !this.tenantService.isPlatformRoot() && !this.tenantService.isSuperAdminSubdomain();
 
   readonly form = this.fb.group({
     email:    ['', [Validators.required, Validators.email]],
@@ -142,11 +169,20 @@ export class LoginComponent implements AfterViewInit {
     this.loading.set(true);
 
     const { email, password } = this.form.value;
+    const credentials = { email: email!, password: password! };
 
-    this.auth.login({ email: email!, password: password! }).subscribe({
+    const request$ = this.isCustomerContext
+      ? this.auth.loginCustomer(credentials)
+      : this.auth.login(credentials);
+
+    request$.subscribe({
       next: res => {
         this.loading.set(false);
-        this.handleAuthResult(res);
+        if (this.isCustomerContext) {
+          this.handleCustomerAuthResult(res);
+        } else {
+          this.handleAuthResult(res);
+        }
       },
       error: () => {
         this.loading.set(false);
@@ -210,7 +246,11 @@ export class LoginComponent implements AfterViewInit {
     this.auth.loginWithGoogle(idToken).subscribe({
       next: res => {
         this.loading.set(false);
-        this.handleAuthResult(res);
+        if (this.isCustomerContext) {
+          this.handleCustomerAuthResult(res);
+        } else {
+          this.handleAuthResult(res);
+        }
       },
       error: () => {
         this.loading.set(false);
@@ -257,5 +297,20 @@ export class LoginComponent implements AfterViewInit {
     }));
     window.location.href =
       `${this.tenantService.buildTenantUrl(user.tenantSubdomain, '/admin')}#auth=${authHandoff}`;
+  }
+
+  // ─── Customer post-login redirect ──────────────────────────────────────────
+  // Simpler than the admin case: a customer is already on the correct tenant
+  // host when they hit this form (there's no cross-origin redirect to do),
+  // so this just confirms success and sends them to their account page.
+
+  private handleCustomerAuthResult(res: IApiResponse<IAuthResponse>): void {
+    if (!res.success || !res.data) {
+      this.serverError.set(res.message ?? 'Invalid email or password.');
+      return;
+    }
+
+    this.toast.success('Welcome back!');
+    this.router.navigate(['/account']);
   }
 }
