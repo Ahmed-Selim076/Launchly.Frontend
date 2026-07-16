@@ -1,6 +1,6 @@
 import {
   Component, ChangeDetectionStrategy, inject, signal,
-  HostListener,
+  HostListener, OnInit,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
@@ -177,15 +177,28 @@ import { AuthService }    from '../../../core/auth/auth.service';
             <a
               routerLink="/account"
               class="hidden sm:flex h-9 w-9 rounded-full items-center justify-center
-                     text-sf-text-2 transition-colors duration-120 hover:bg-sf-surface
-                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sf-border-2"
+                     overflow-hidden text-sf-text-2 transition-colors duration-120
+                     hover:bg-sf-surface focus-visible:outline-none focus-visible:ring-2
+                     focus-visible:ring-sf-border-2"
               aria-label="My account"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-                   stroke-linecap="round" stroke-linejoin="round" class="w-[18px] h-[18px]">
-                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
-                <circle cx="12" cy="7" r="4"/>
-              </svg>
+              @if (authSvc.avatarUrl(); as url) {
+                <img [src]="url" alt="" class="h-full w-full object-cover rounded-full" />
+              } @else if (authSvc.currentUser()) {
+                <div
+                  class="h-full w-full rounded-full flex items-center justify-center
+                         text-white text-xs font-semibold"
+                  style="background: var(--tenant-primary, #15140F);"
+                >
+                  {{ authSvc.currentUser()?.firstName?.charAt(0) }}{{ authSvc.currentUser()?.lastName?.charAt(0) }}
+                </div>
+              } @else {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+                     stroke-linecap="round" stroke-linejoin="round" class="w-[18px] h-[18px]">
+                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+              }
             </a>
 
             <!-- Mobile hamburger -->
@@ -256,7 +269,7 @@ import { AuthService }    from '../../../core/auth/auth.service';
     </style>
   `,
 })
-export class StoreNavComponent {
+export class StoreNavComponent implements OnInit {
   private readonly tenantSvc = inject(TenantService);
   private readonly cartSvc   = inject(CartService);
   readonly authSvc = inject(AuthService);
@@ -273,6 +286,12 @@ export class StoreNavComponent {
     { label: 'About',    route: '/about',    exact: false },
     { label: 'Contact',  route: '/contact',  exact: false },
   ];
+
+  ngOnInit(): void {
+    if (this.authSvc.isAuthenticated()) {
+      this.authSvc.getMe().subscribe({ error: () => {} });
+    }
+  }
 
   @HostListener('window:scroll')
   onScroll(): void {
