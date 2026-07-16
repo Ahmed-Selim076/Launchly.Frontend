@@ -18,6 +18,16 @@ import {
  *   <button appMagneticHover>Click me</button>
  *   <button appMagneticHover [magnetStrength]="6">Stronger</button>
  *
+ * For elements that already have their own positioning transform (e.g. the
+ * hero's fanned-out preview cards, which use translate/rotate to sit off to
+ * one side), pass that transform in via [baseTransform]. Without it, this
+ * directive would overwrite the element's transform outright on the very
+ * first mousemove — and since it writes directly via Renderer2.setStyle,
+ * that inline value beats any CSS rule and nothing else ever resets it, so
+ * the element stays stuck in the wrong place even after the mouse leaves.
+ * Prepending baseTransform keeps the element's real position intact and
+ * only layers the small magnetic wobble on top of it.
+ *
  * Only transform is mutated — always GPU composited.
  */
 @Directive({
@@ -26,6 +36,7 @@ import {
 })
 export class MagneticHoverDirective implements OnDestroy {
   @Input() magnetStrength = 4;
+  @Input() baseTransform = '';
 
   private readonly el       = inject(ElementRef<HTMLElement>);
   private readonly renderer = inject(Renderer2);
@@ -53,12 +64,18 @@ export class MagneticHoverDirective implements OnDestroy {
     const tx      = ((e.clientX - centerX) / maxDist) * this.magnetStrength;
     const ty      = ((e.clientY - centerY) / maxDist) * this.magnetStrength;
 
-    this.renderer.setStyle(this.el.nativeElement, 'transform',  `translate(${tx}px,${ty}px)`);
+    this.renderer.setStyle(
+      this.el.nativeElement, 'transform',
+      `${this.baseTransform} translate(${tx}px,${ty}px)`.trim()
+    );
     this.renderer.setStyle(this.el.nativeElement, 'transition', 'transform 80ms linear');
   }
 
   private onLeave(): void {
-    this.renderer.setStyle(this.el.nativeElement, 'transform',  'translate(0,0)');
+    this.renderer.setStyle(
+      this.el.nativeElement, 'transform',
+      `${this.baseTransform} translate(0,0)`.trim()
+    );
     this.renderer.setStyle(this.el.nativeElement, 'transition',
       `transform var(--duration-slow) var(--ease-spring)`);
   }
