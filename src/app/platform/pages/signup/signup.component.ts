@@ -624,14 +624,38 @@ export class SignupComponent implements OnDestroy {
           window.location.href =
             `${this.tenantService.buildTenantUrl(s2.subdomain!, '/admin')}#auth=${authHandoff}`;
         } else {
-          this.toast.error(res.message ?? 'Registration failed. Please try again.');
+          this.handleRegisterFailure(res.message);
         }
       },
-      error: () => {
+      error: (err: unknown) => {
         this.submitting.set(false);
-        this.toast.error('Something went wrong. Please try again.');
+        const message = (err as { error?: { message?: string } })?.error?.message;
+        this.handleRegisterFailure(message);
       },
     });
+  }
+
+  /**
+   * Someone else can grab the same subdomain in the gap between the live
+   * check on step 2 and the final submit on step 5 — rare, but when it
+   * happens a generic "something went wrong" toast leaves the customer
+   * stuck without knowing why, forcing them to manually click Back through
+   * every step to fix it. Instead: recognise a subdomain-taken response by
+   * message, mark the field as taken again, and jump straight back to
+   * step 2 so they can pick a new one immediately.
+   */
+  private handleRegisterFailure(message?: string | null): void {
+    const isSubdomainConflict = (message ?? '').toLowerCase().includes('subdomain');
+
+    if (isSubdomainConflict) {
+      this.subdomainAvailable.set(false);
+      this.toast.error(message ?? 'This subdomain was just taken — please choose another one.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      this.currentStep.set(2);
+      return;
+    }
+
+    this.toast.error(message ?? 'Something went wrong. Please try again.');
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
