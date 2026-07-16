@@ -6,6 +6,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { AuthService } from '../../../core/auth/auth.service';
+import { UploadService } from '../../../core/admin/upload.service';
 import { ToastService } from '../../../shared/components/toast/toast.service';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { InputComponent } from '../../../shared/components/input/input.component';
@@ -22,7 +23,11 @@ import { PASSWORD_VALIDATORS } from '../../../shared/validators/password.validat
  * up before buying). Uses AuthService.registerCustomer(), the same endpoint
  * checkout uses, which now returns real access/refresh tokens on success —
  * so unlike the old checkout-only path, this one leaves the customer
- * properly signed in immediately.
+ * properly signed in immediately. That new token is also what makes the
+ * optional profile-photo picker below possible: the avatar upload endpoint
+ * requires an authenticated request, so the photo (if chosen) is uploaded
+ * right after registration succeeds, using the token that registration
+ * itself just returned — same upload flow the account page already uses.
  *
  * Only ever registered under a tenant subdomain's route table (see
  * app.config.ts) — there's no equivalent "sign up a customer" concept at
@@ -52,6 +57,37 @@ import { PASSWORD_VALIDATORS } from '../../../shared/validators/password.validat
           <p class="text-sf-text-3 mb-8">
             Sign up to track orders and check out faster next time.
           </p>
+
+          <!-- Optional profile photo -->
+          <div class="flex items-center gap-4 mb-6">
+            <div
+              class="h-14 w-14 rounded-full overflow-hidden flex items-center justify-center
+                     shrink-0 text-white font-display text-lg font-semibold"
+              style="background: var(--tenant-primary, #15140F);"
+            >
+              @if (photoPreview(); as preview) {
+                <img [src]="preview" alt="" class="h-full w-full object-cover" />
+              } @else {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="w-6 h-6 opacity-70">
+                  <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+              }
+            </div>
+            <div>
+              <button
+                type="button" (click)="fileInput.click()"
+                class="text-sm font-medium text-accent hover:underline"
+              >
+                {{ photoPreview() ? 'Change photo' : 'Add a profile photo' }}
+              </button>
+              <p class="text-xs text-sf-text-3">Optional — you can always add one later.</p>
+            </div>
+            <input
+              #fileInput type="file" accept="image/*" class="hidden"
+              (change)="onPhotoSelected($event)"
+            />
+          </div>
 
           <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-5">
             <div class="grid grid-cols-2 gap-4">
@@ -112,13 +148,17 @@ import { PASSWORD_VALIDATORS } from '../../../shared/validators/password.validat
   `,
 })
 export class CustomerSignupComponent {
-  private readonly fb     = inject(FormBuilder);
-  private readonly auth   = inject(AuthService);
-  private readonly toast  = inject(ToastService);
-  private readonly router = inject(Router);
+  private readonly fb        = inject(FormBuilder);
+  private readonly auth      = inject(AuthService);
+  private readonly uploadSvc = inject(UploadService);
+  private readonly toast     = inject(ToastService);
+  private readonly router    = inject(Router);
 
-  readonly loading     = signal(false);
-  readonly serverError = signal('');
+  readonly loading      = signal(false);
+  readonly serverError  = signal('');
+  readonly photoPreview = signal<string | null>(null);
+
+  private selectedPhoto: File | null = null;
 
   readonly form = this.fb.group({
     firstName: ['', [Validators.required, Validators.minLength(2)]],
@@ -139,6 +179,16 @@ export class CustomerSignupComponent {
     return 'Invalid value.';
   }
 
+  onPhotoSelected(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    this.selectedPhoto = file;
+
+    const reader = new FileReader();
+    reader.onload = () => this.photoPreview.set(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
   onSubmit(): void {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     if (this.loading()) return;
@@ -155,12 +205,29 @@ export class CustomerSignupComponent {
       password:  v.password!,
     }).subscribe({
       next: res => {
-        this.loading.set(false);
-        if (res.success && res.data) {
-          this.toast.success('Account created!');
-          this.router.navigate(['/account']);
-        } else {
+        if (!res.success || !res.data) {
+          this.loading.set(false);
           this.serverError.set(res.message ?? 'Could not create account. Please try again.');
+          return;
+        }
+        // Account exists and the session is stored (AuthService did that in
+        // its own tap()) — a chosen photo can now be uploaded, since that
+        // endpoint needs the auth token we just got. No photo picked just
+        // skips straight to the same place.
+        if (this.selectedPhoto) {
+          this.uploadSvc.upload(this.selectedPhoto, 'avatar').subscribe({
+            next: url => {
+              this.auth.updateAvatar(url).subscribe({
+                next:  () => this.finishSignup(),
+                // Account itself is fine either way — a failed photo save
+                // shouldn't block someone from finishing signup.
+                error: () => this.finishSignup(),
+              });
+            },
+            error: () => this.finishSignup(),
+          });
+        } else {
+          this.finishSignup();
         }
       },
       error: (err: unknown) => {
@@ -169,5 +236,11 @@ export class CustomerSignupComponent {
         this.serverError.set(message ?? 'Could not create account. Please try again.');
       },
     });
+  }
+
+  private finishSignup(): void {
+    this.loading.set(false);
+    this.toast.success('Account created!');
+    this.router.navigate(['/account']);
   }
 }
