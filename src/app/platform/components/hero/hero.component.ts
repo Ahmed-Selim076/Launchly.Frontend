@@ -66,8 +66,9 @@ import { MagneticHoverDirective } from '../../../shared/directives/magnetic-hove
             appMagneticHover [magnetStrength]="8"
             routerLink="/showcase"
             class="preview-card absolute top-1/2 left-1/2 w-52 sm:w-60 rounded-2xl border border-sf-border
-                   bg-sf-surface shadow-lg overflow-hidden cursor-pointer transition-shadow hover:shadow-xl"
-            [style.transform]="'translate(-50%, -50%) translateX(' + card.x + 'px) rotate(' + card.rotate + 'deg)'"
+                   bg-sf-surface shadow-lg overflow-hidden cursor-pointer"
+            [style.--card-x.px]="card.x"
+            [style.--card-rotate.deg]="card.rotate"
             [style.z-index]="card.z"
           >
             <div class="h-24 flex items-center justify-center text-4xl" [style.background]="card.bg">
@@ -83,8 +84,19 @@ import { MagneticHoverDirective } from '../../../shared/directives/magnetic-hove
     </section>
 
     <style>
-      .preview-card { transition: transform 280ms var(--ease-spring, cubic-bezier(.2,1,.3,1)); }
-      .preview-card:hover { transform: translate(-50%, -55%) rotate(0deg) scale(1.04) !important; z-index: 10 !important; }
+      .preview-card {
+        transform: translate(-50%, -50%) translateX(var(--card-x)) rotate(var(--card-rotate));
+        transition: transform 280ms var(--ease-spring, cubic-bezier(.2,1,.3,1)), box-shadow 280ms;
+      }
+      .preview-card:hover {
+        /* Keep each card's own --card-x offset — only straighten rotation
+           and scale up. Overwriting the whole transform (the old approach)
+           dropped translateX entirely, snapping every card back to dead
+           center on hover so they all piled on top of each other. */
+        transform: translate(-50%, -55%) translateX(var(--card-x)) rotate(0deg) scale(1.04);
+        box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        z-index: 10;
+      }
     </style>
   `,
 })
