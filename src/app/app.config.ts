@@ -1,5 +1,5 @@
 import { ApplicationConfig, provideZoneChangeDetection, APP_INITIALIZER, inject } from '@angular/core';
-import { provideRouter, withComponentInputBinding, Router } from '@angular/router';
+import { provideRouter, withComponentInputBinding, withInMemoryScrolling, Router } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { APP_BASE_HREF } from '@angular/common';
@@ -140,6 +140,10 @@ export const appConfig: ApplicationConfig = {
     provideRouter(
       routes,
       withComponentInputBinding(),
+      withInMemoryScrolling({
+        anchorScrolling: 'enabled',
+        scrollPositionRestoration: 'enabled',
+      }),
     ),
     provideHttpClient(
       withInterceptors([tenantInterceptor, authInterceptor])
